@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metode Numerik - Pencarian Akar</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js" charset="utf-8"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="bg-animation" id="bgAnimation"></div>
+
+    <div class="page">
+        <header class="hero">
+            <h1>Metode Pencarian Akar</h1>
+            <p class="subtitle">Aplikasi Metode Numerik Canggih untuk Pencarian Akar Persamaan dengan Visualisasi Real-time</p>
+        </header>
+
+        <main class="container">
+
+            <!-- CARD: FORM INPUT -->
+            <section class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-calculator"></i> Input Persamaan</h2>
+                    <span class="badge"><i class="fas fa-bezier-curve"></i> f(x) = 0</span>
+                </div>
+
+                <div class="method-indicator" id="methodTabs">
+                    <div class="method-tab active" onclick="selectMethod('bisection')">
+                        <i class="fas fa-exchange-alt"></i> Metode Bisection
+                    </div>
+                    <div class="method-tab" onclick="selectMethod('newton')">
+                        <i class="fas fa-bolt"></i> Newton-Raphson
+                    </div>
+                </div>
+
+                <form id="rootForm" class="form-grid">
+                    <div class="field">
+                        <label for="function"><i class="fas fa-function"></i> Persamaan f(x)</label>
+                        <input type="text" id="function" placeholder="contoh: x**3 - x - 2" required value="x**3 - x - 2">
+                        <small class="hint">Gunakan sintaks Python (x**2 untuk x², sin(x), exp(x), dll)</small>
+                    </div>
+
+                    <input type="hidden" id="method" value="bisection">
+
+                    <!-- PARAMETER BISECTION -->
+                    <div id="bisectionParams" class="grid-2">
+                        <div class="field">
+                            <label for="a"><i class="fas fa-arrow-down"></i> Batas bawah (a)</label>
+                            <input type="number" id="a" step="any" placeholder="contoh: 1" value="1">
+                        </div>
+
+                        <div class="field">
+                            <label for="b"><i class="fas fa-arrow-up"></i> Batas atas (b)</label>
+                            <input type="number" id="b" step="any" placeholder="contoh: 2" value="2">
+                        </div>
+                    </div>
+
+                    <!-- PARAMETER NEWTON -->
+                    <div id="newtonParams" class="grid-2" style="display:none;">
+                        <div class="field">
+                            <label for="x0"><i class="fas fa-bullseye"></i> Tebakan awal (x₀)</label>
+                            <input type="number" id="x0" step="any" placeholder="contoh: 1" value="1">
+                        </div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="field">
+                            <label for="tolerance"><i class="fas fa-bullseye"></i> Toleransi error</label>
+                            <input type="number" id="tolerance" step="any" value="0.001" required>
+                        </div>
+
+                        <div class="field">
+                            <label for="max_iter"><i class="fas fa-sync"></i> Maksimum iterasi</label>
+                            <input type="number" id="max_iter" value="50" required>
+                        </div>
+                    </div>
+
+                    <div class="actions">
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-rocket"></i>
+                            <span>Hitung Sekarang</span>
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- GRID: RESULT + PLOT -->
+            <section class="grid">
+                <!-- HASIL -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-chart-line"></i> Hasil Perhitungan</h2>
+                        <span class="badge"><i class="fas fa-check-circle"></i> Validasi</span>
+                    </div>
+
+                    <div id="result" class="result-box">
+                        <div class="result-item">
+                            <div class="result-label">
+                                <i class="fas fa-crosshairs"></i> Akar (Root)
+                            </div>
+                            <div class="result-value" id="rootValue">-</div>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">
+                                <i class="fas fa-calculator"></i> Nilai f(x)
+                            </div>
+                            <div class="result-value" id="fRootValue">-</div>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">
+                                <i class="fas fa-redo"></i> Iterasi
+                            </div>
+                            <div class="result-value" id="iterationCount">-</div>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">
+                                <i class="fas fa-exclamation-triangle"></i> Error
+                            </div>
+                            <div class="result-value" id="errorValue">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GRAFIK INTERAKTIF -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-chart-area"></i> Visualisasi Grafik</h2>
+                        <span class="badge"><i class="fas fa-project-diagram"></i> Interactive</span>
+                    </div>
+
+                    <div class="plot-wrap">
+                        <div id="plotContainer" class="chart-container">
+                            <!-- Gambar dari backend akan muncul di sini -->
+                            <img id="plotImage" style="width: 100%; height: 100%; object-fit: contain; display: none;">
+                            <div id="plotEmpty" class="plot-empty">
+                                <i class="fas fa-chart-line" style="font-size: 3rem; margin-bottom: 1rem; color: var(--accent-blue);"></i>
+                                <div>Grafik akan muncul di sini</div>
+                                <small>Setelah melakukan perhitungan</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- STEP BY STEP PROCESS -->
+            <section class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-shoe-prints"></i> Proses Step-by-Step</h2>
+                    <span class="badge"><i class="fas fa-graduation-cap"></i> Penjelasan Detail</span>
+                </div>
+
+                <div id="stepsContainer" class="steps-container">
+                    <div class="steps-empty">
+                        <i class="fas fa-route" style="font-size: 3rem; margin-bottom: 1rem; color: var(--accent-blue);"></i>
+                        <div>Proses perhitungan akan ditampilkan di sini</div>
+                        <small>Setiap langkah akan dijelaskan secara detail</small>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TABEL ITERASI -->
+            <section class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-table"></i> Tabel Iterasi</h2>
+                    <span class="badge"><i class="fas fa-history"></i> Proses Konvergensi</span>
+                </div>
+
+                <div class="table-wrap">
+                    <table id="iterationTable">
+                        <thead>
+                            <tr id="tableHeader">
+                                <th colspan="6" style="text-align: center; padding: 4rem; color: var(--text-secondary);">
+                                    <i class="fas fa-clock" style="font-size: 2.5rem; margin-bottom: 1.5rem; display: block; color: var(--accent-blue);"></i>
+                                    <div style="font-size: 1.1rem; margin-bottom: 0.5rem;">Data iterasi akan muncul di sini</div>
+                                    <small style="color: var(--accent-cyan);">Setelah melakukan perhitungan</small>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <!-- Data akan diisi secara dinamis -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+        </main>
+
+        <footer class="footer">
+            <small>
+                <i class="fas fa-copyright"></i> 2026 NumeriSolve | Metode Numerik — Pencarian Akar (Bracket/Open)
+                <br>
+                <span style="color: var(--accent-cyan); font-size: 0.9rem;">Backend dengan Flask & SymPy</span>
+            </small>
+        </footer>
+    </div>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
